@@ -59,6 +59,30 @@ jobs:
       - name: Fix Gradle permission
         run: chmod +x ./gradlew
 
+      # === 临时修复：为 GenerateBinPatches 任务的 side 属性注入默认值 ===
+      # 解决 Gradle 版本升级后 side 属性未配置导致构建中断的问题
+      - name: Fix side property for GenerateBinPatches
+        run: |
+          # 在根目录 build.gradle 中注入默认配置
+          if [ -f "build.gradle" ]; then
+            echo '' >> build.gradle
+            echo '// Temporary fix: set default side for GenerateBinPatches' >> build.gradle
+            echo 'tasks.withType(net.minecraftforge.gradle.patcher.tasks.GenerateBinPatches).configureEach {' >> build.gradle
+            echo '    side.convention("CLIENT")' >> build.gradle
+            echo '}' >> build.gradle
+            echo "[INFO] Injected side convention fix into build.gradle"
+          fi
+          # 在 cleanroom 子项目中同样注入
+          if [ -f "projects/cleanroom/build.gradle" ]; then
+            echo '' >> projects/cleanroom/build.gradle
+            echo '// Temporary fix: set default side for GenerateBinPatches' >> projects/cleanroom/build.gradle
+            echo 'tasks.withType(net.minecraftforge.gradle.patcher.tasks.GenerateBinPatches).configureEach {' >> projects/cleanroom/build.gradle
+            echo '    side.convention("CLIENT")' >> projects/cleanroom/build.gradle
+            echo '}' >> projects/cleanroom/build.gradle
+            echo "[INFO] Injected side convention fix into projects/cleanroom/build.gradle"
+          fi
+          echo "[INFO] Side property fix applied successfully"
+
       - name: Setup Forge env
         run: ./gradlew setup -Prun_number=${{ github.run_number }}
       - name: Stop Gradle daemon
